@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secure System Call Interface</title>
+<style>
+body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f4; padding:
+50px; }
+.container { width: 400px; margin: auto; background: white; padding: 20px; border-
+radius: 10px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); }
+input, button { width: 90%; padding: 10px; margin: 10px; border-radius: 5px; border:
+1px solid #ddd; }
+button { background-color: #28a745; color: white; cursor: pointer; }
+button:hover { background-color: #218838; }
+.hidden { display: none; }
+#log-container { text-align: left; max-height: 200px; overflow-y: auto; border: 1px solid
+#ddd; padding: 10px; background: #fff; }
+</style>
+</head>
+<body>
+<div class="container" id="auth-section">
+<h2>Login</h2>
+<input type="text" id="username" placeholder="Enter Username">
+<input type="password" id="password" placeholder="Enter Password">
+<button onclick="login()">Login</button>
+</div>
+<div class="container hidden" id="system-call-section">
+<h2>Execute System Call</h2>
+<input type="text" id="command" placeholder="Enter Command">
+<button onclick="executeCommand()">Run</button>
+<p id="command-output"></p>
+<h3>Logs (Admin Only)</h3>
+<div id="log-container"></div>
+<button onclick="fetchLogs()" id="log-button" class="hidden">Refresh Logs</button>
+</div>
+<script>
+let token = "";
+let role = "";
+function login() {
+const username = document.getElementById("username").value;
+const password = document.getElementById("password").value;
+fetch("http://127.0.0.1:5000/login", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ username, password })
+})
+.then(response => response.json())
+.then(data => {
+if (data.token) {
+token = data.token;
+role = data.role;
+document.getElementById("auth-section").classList.add("hidden");
+document.getElementById("system-call-section").classList.remove("hidden");
+if (role === "admin") {
+document.getElementById("log-button").classList.remove("hidden");
+}
+} else {
+alert("Login failed!");
+}
+});
+}
+function executeCommand() {
+const command = document.getElementById("command").value;
+fetch("http://127.0.0.1:5000/execute", {
+method: "POST",
+headers: {
+"Content-Type": "application/json",
+"Authorization": `Bearer ${token}`
+},
+body: JSON.stringify({ command })
+})
+.then(response => response.json())
+.then(data => {
+document.getElementById("command-output").innerText = data.output || "Error
+executing command!";
+fetchLogs();
+});
+}
+function fetchLogs() {
+fetch("http://127.0.0.1:5000/logs", {
+method: "GET",
+headers: { "Authorization": `Bearer ${token}` }
+})
+.then(response => response.json())
+.then(data => {
+document.getElementById("log-container").innerHTML = data.logs.map(log =>
+`<p>${log}</p>`).join("");
+});
+}
+</script>
+</body>
+</html>
