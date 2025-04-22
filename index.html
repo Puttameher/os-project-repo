@@ -1,93 +1,364 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Secure System Call Interface</title>
-<style>
-body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f4; padding:
-50px; }
-.container { width: 400px; margin: auto; background: white; padding: 20px; border-
-radius: 10px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); }
-input, button { width: 90%; padding: 10px; margin: 10px; border-radius: 5px; border:
-1px solid #ddd; }
-button { background-color: #28a745; color: white; cursor: pointer; }
-button:hover { background-color: #218838; }
-.hidden { display: none; }
-#log-container { text-align: left; max-height: 200px; overflow-y: auto; border: 1px solid
-#ddd; padding: 10px; background: #fff; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure System Call Interface</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+            background: #0A0A23;
+            color: #00FFCC;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .container {
+            background: #1A1A33;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+            width: 400px;
+            text-align: center;
+            animation: float 3s ease-in-out infinite;
+            border: 1px solid #00B4CF;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .welcome {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite alternate;
+            font-weight: bold;
+            text-shadow: 0 0 5px #00FFCC;
+        }
+        @keyframes pulse {
+            from { opacity: 0.7; }
+            to { opacity: 1; }
+        }
+        .loading {
+            font-size: 1.2em;
+            color: #00B4CF;
+            animation: blink 1s infinite, slideIn 2s ease-out;
+            font-weight: bold;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            background: #0A0A23;
+            color: #00FFCC;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.1em;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 0 5px rgba(0, 255, 204, 0.3);
+        }
+        input:focus, select:focus, button:focus {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.6);
+        }
+        button {
+            background: #00FFCC;
+            color: #0A0A23;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+        }
+        button:hover {
+            background: #00B4CF;
+            transform: scale(1.1);
+        }
+        #logDisplay {
+            width: 600px;
+            height: 300px;
+            background: #0A0A23;
+            color: #00FFCC;
+            margin-top: 10px;
+            padding: 15px;
+            overflow-y: auto;
+            border-radius: 10px;
+            animation: fadeIn 1s;
+            position: fixed;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.0em;
+            line-height: 1.5;
+            z-index: 10;
+            display: none;
+            border: 1px solid #00B4CF;
+        }
+        #logDisplay.show {
+            display: block;
+        }
+        #closeLog {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #00B4CF;
+            border: none;
+            padding: 5px 10px;
+            color: #0A0A23;
+            cursor: pointer;
+            border-radius: 5px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #closeLog:hover {
+            background: #00FFCC;
+        }
+        .log-entry {
+            margin-bottom: 10px;
+            padding: 5px;
+            border-bottom: 1px dashed #00FFCC;
+            font-size: 1.0em;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .hidden {
+            display: none;
+        }
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(10, 10, 35, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+            color: #00FFCC;
+            font-size: 1.2em;
+            animation: popIn 0.5s;
+            z-index: 1000;
+            display: none;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        @keyframes popIn {
+            from { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
 </head>
 <body>
-<div class="container" id="auth-section">
-<h2>Login</h2>
-<input type="text" id="username" placeholder="Enter Username">
-<input type="password" id="password" placeholder="Enter Password">
-<button onclick="login()">Login</button>
-</div>
-<div class="container hidden" id="system-call-section">
-<h2>Execute System Call</h2>
-<input type="text" id="command" placeholder="Enter Command">
-<button onclick="executeCommand()">Run</button>
-<p id="command-output"></p>
-<h3>Logs (Admin Only)</h3>
-<div id="log-container"></div>
-<button onclick="fetchLogs()" id="log-button" class="hidden">Refresh Logs</button>
-</div>
-<script>
-let token = "";
-let role = "";
-function login() {
-const username = document.getElementById("username").value;
-const password = document.getElementById("password").value;
-fetch("http://127.0.0.1:5000/login", {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({ username, password })
-})
-.then(response => response.json())
-.then(data => {
-if (data.token) {
-token = data.token;
-role = data.role;
-document.getElementById("auth-section").classList.add("hidden");
-document.getElementById("system-call-section").classList.remove("hidden");
-if (role === "admin") {
-document.getElementById("log-button").classList.remove("hidden");
-}
-} else {
-alert("Login failed!");
-}
-});
-}
-function executeCommand() {
-const command = document.getElementById("command").value;
-fetch("http://127.0.0.1:5000/execute", {
-method: "POST",
-headers: {
-"Content-Type": "application/json",
-"Authorization": `Bearer ${token}`
-},
-body: JSON.stringify({ command })
-})
-.then(response => response.json())
-.then(data => {
-document.getElementById("command-output").innerText = data.output || "Error
-executing command!";
-fetchLogs();
-});
-}
-function fetchLogs() {
-fetch("http://127.0.0.1:5000/logs", {
-method: "GET",
-headers: { "Authorization": `Bearer ${token}` }
-})
-.then(response => response.json())
-.then(data => {
-document.getElementById("log-container").innerHTML = data.logs.map(log =>
-`<p>${log}</p>`).join("");
-});
-}
-</script>
+    <div class="container" id="welcomeScreen">
+        <div class="welcome">Welcome to Secure Interface</div>
+        <div class="loading" id="loadingText">Initializing...</div>
+    </div>
+
+    <div class="container hidden" id="loginScreen">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Username" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button onclick="startAuthentication()">Login</button>
+        <button onclick="showRegistration()">Register</button>
+    </div>
+
+    <div class="container hidden" id="auth2faScreen">
+        <h2>2FA Verification</h2>
+        <input type="text" id="authCode" placeholder="Enter 2FA Code" required>
+        <button onclick="verify2FA()">Verify</button>
+    </div>
+
+    <div class="container hidden" id="regScreen">
+        <h2>Register</h2>
+        <input type="text" id="regUsername" placeholder="New Username" required>
+        <input type="password" id="regPassword" placeholder="Password" required>
+        <input type="password" id="regConfirm" placeholder="Confirm Password" required>
+        <input type="text" id="regRole" placeholder="Role (admin/user)" required>
+        <button onclick="registerUser()">Register</button>
+        <button onclick="showLogin()">Back to Login</button>
+    </div>
+
+    <div class="container hidden" id="mainScreen">
+        <h2>Welcome, Access Granted!</h2>
+        <input type="text" id="searchCall" placeholder="Search System Call" onkeyup="updateDropdown()">
+        <select id="callDropdown"></select>
+        <button onclick="executeSystemCall()">Execute</button>
+        <div id="logDisplay">
+            <button id="closeLog">Close</button>
+        </div>
+        <button onclick="viewLogs()">View Logs</button>
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <div class="popup" id="messagePopup"></div>
+
+    <script>
+        let currentUser = null;
+        let currentRole = null;
+        const SYSTEM_CALLS = {{ system_calls|tojson }};
+
+        setTimeout(() => {
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }, 3000);
+
+        function updateDropdown() {
+            const searchTerm = document.getElementById('searchCall').value.toLowerCase();
+            const dropdown = document.getElementById('callDropdown');
+            dropdown.innerHTML = '';
+            const filteredCalls = SYSTEM_CALLS.filter(call => call.toLowerCase().includes(searchTerm));
+            filteredCalls.forEach(call => {
+                const option = document.createElement('option');
+                option.value = call;
+                option.text = call;
+                dropdown.appendChild(option);
+            });
+            if (filteredCalls.length > 0) dropdown.value = filteredCalls[0];
+            else dropdown.value = SYSTEM_CALLS[0];
+        }
+
+        async function startAuthentication() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await response.json();
+            if (data.status === "success") {
+                alert(data.message);
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('auth2faScreen').classList.remove('hidden');
+            } else {
+                alert(data.error);
+            }
+        }
+
+        async function verify2FA() {
+            const username = document.getElementById('username').value;
+            const code = document.getElementById('authCode').value;
+            const response = await fetch('/verify_2fa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, code })
+            });
+            const data = await response.json();
+            if (data.status === "success") {
+                currentUser = username;
+                currentRole = data.role;
+                document.getElementById('auth2faScreen').classList.add('hidden');
+                document.getElementById('mainScreen').classList.remove('hidden');
+                updateDropdown();
+            } else {
+                alert(data.error);
+            }
+        }
+
+        async function showRegistration() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('regScreen').classList.remove('hidden');
+        }
+
+        async function showLogin() {
+            document.getElementById('regScreen').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+
+        async function registerUser() {
+            const username = document.getElementById('regUsername').value;
+            const password = document.getElementById('regPassword').value;
+            const confirm = document.getElementById('regConfirm').value;
+            const role = document.getElementById('regRole').value;
+            const response = await fetch('/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, confirm, role })
+            });
+            const data = await response.json();
+            if (data.status === "success") {
+                alert(data.message);
+                showLogin();
+            } else {
+                alert(data.error);
+            }
+        }
+
+        async function executeSystemCall() {
+            if (!currentUser) {
+                alert("Please login first.");
+                return;
+            }
+            const selectedCall = document.getElementById('callDropdown').value;
+            const response = await fetch('/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: currentUser, call: selectedCall })
+            });
+            const data = await response.json();
+            const popup = document.getElementById('messagePopup');
+            popup.innerHTML = data.message || data.error;
+            popup.style.display = 'block';
+            setTimeout(() => popup.style.display = 'none', 2000);
+            if (data.status === "success") {
+                const logDisplay = document.getElementById('logDisplay');
+                logDisplay.innerHTML += `${new Date().toISOString()} | System Call: ${selectedCall} | Status: Success<br>`;
+                logDisplay.scrollTop = logDisplay.scrollHeight;
+            }
+        }
+
+        async function viewLogs() {
+            if (!currentUser) {
+                alert("Please login first.");
+                return;
+            }
+            const logDisplay = document.getElementById('logDisplay');
+            const response = await fetch(`/view_logs?username=${currentUser}`);
+            const data = await response.json();
+            if (data.logs) {
+                const logEntries = data.logs.split('\n').filter(entry => entry.trim() !== '');
+                let formattedLogs = '';
+                logEntries.forEach((entry, index) => {
+                    formattedLogs += `<div class="log-entry">[${(index + 1).toString().padStart(2, '0')}] ${entry.replace(/\|/g, ' | ').trim()}</div>`;
+                });
+                logDisplay.classList.add('show');
+                logDisplay.innerHTML = `<button id="closeLog">Close</button>${formattedLogs}`;
+            } else {
+                alert(data.error || "No logs available");
+            }
+        }
+
+        document.getElementById('logDisplay').addEventListener('click', function(e) {
+            if (e.target && e.target.id === 'closeLog') {
+                document.getElementById('logDisplay').classList.remove('show');
+            }
+        });
+
+        async function logout() {
+            if (currentUser) {
+                await fetch('/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: currentUser })
+                });
+                currentUser = null;
+                currentRole = null;
+                document.getElementById('mainScreen').classList.add('hidden');
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('logDisplay').classList.remove('show');
+                document.getElementById('logDisplay').innerHTML = "";
+            }
+        }
+    </script>
 </body>
 </html>
